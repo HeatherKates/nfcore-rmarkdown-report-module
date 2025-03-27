@@ -1,0 +1,8 @@
+*.sif
+*.tar
+*.tar.gz
+*.RData
+*.rds
+*.html
+*.pdf
+
