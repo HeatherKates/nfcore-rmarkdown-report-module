@@ -7,12 +7,20 @@ This module renders a custom RMarkdown report (`RNAseq_report.Rmd`) using provid
 ##  Included Files
 
 ```
-modules/local/rmarkdown_report/
-├── main.nf              # Nextflow process for rendering report
 ├── RNAseq_report.Rmd    # Main RMarkdown report template
 ├── analysis.R           # Custom analysis code
 ├── HRK_funcs.R          # Custom utility functions
-```
+.
+├── CX_lung_report_params.txt # Example report params file
+├── modules
+│   └── local
+│       └── rmarkdown_report
+│           ├── analysis.R # Custom analysis code
+│           ├── HRK_funcs.R # Custom utility functions
+│           ├── main.nf # Nextflow process for rendering report
+│           └── RNAseq_report.Rmd # Main RMarkdown report template
+├── test_rmarkdown.nf # A minimal Nextflow script to run the local RMarkdown module.
+└── test_rnaseqreport.bash # Bash script to run the module using the test Nextflow workflow.
 
 ---
 
@@ -72,7 +80,7 @@ Then reference it in your `test_rnaseqreport.bash` or main pipeline.
 
 ---
 
-## 📝 Parameters
+##  Parameters
 
 | Parameter              | Description                          |
 |------------------------|--------------------------------------|
@@ -83,7 +91,7 @@ Then reference it in your `test_rnaseqreport.bash` or main pipeline.
 
 ---
 
-## ✅ Usage in Pipeline
+## Usage in Pipeline
 
 To integrate into a full Nextflow project (like `nf-core/rnaseq`), place this module in:
 
