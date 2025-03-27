@@ -4,7 +4,7 @@ This module renders a custom RMarkdown report (`RNAseq_report.Rmd`) using provid
 
 ---
 
-## 📁 Included Files
+##  Included Files
 
 ```
 modules/local/rmarkdown_report/
@@ -16,7 +16,7 @@ modules/local/rmarkdown_report/
 
 ---
 
-## 🚀 How to Run the Module Standalone
+##  How to Run the Module Standalone
 
 ### 1. Create a test script (e.g. `test_rnaseqreport.bash`)
 
@@ -32,7 +32,7 @@ nextflow run test_rmarkdown.nf \
   --rmarkdown_outdir results/reports
 ```
 
-> 🔁 Replace paths with your actual file locations.
+>  Replace paths with your actual file locations.
 
 ---
 
@@ -58,14 +58,14 @@ workflow {
 
 ---
 
-## 🐳 Container Notes
+##  Container Notes
 
 This module uses a custom Singularity container (`.sif`) that includes `downloadthis` and many CRAN/Bioconductor packages.
 
-**Best practice:** Store the container in a stable location, e.g.:
+**The container is too large for the remote repo. It is stored in:**
 
 ```
-/blue/cancercenter-dept/containers/rmarkdown_report.sif
+/blue/cancercenter-dept/PIPELINES/rmarkdown_report_module/
 ```
 
 Then reference it in your `test_rnaseqreport.bash` or main pipeline.
