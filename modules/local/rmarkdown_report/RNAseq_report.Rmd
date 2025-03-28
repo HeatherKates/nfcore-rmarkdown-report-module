@@ -97,27 +97,34 @@ invisible(
 
 Below is a link to download the raw sequencing files. These files are very large (>150GB); download only when needed. Note that you **must be logged into your UF dropbox account** for this link to work.
 
-```{r download raw data,echo=FALSE, results="asis"}
+```{r download raw data, echo=FALSE, results="asis"}
 url <- report_params$raw_seq_URL
-cat(sprintf('<a href="%s" class="btn btn-primary" role="button" download>Download Raw Sequence Files</a>', url))
+
+if (url == "") {
+  cat("<p><em>This file was not included in this report.</em></p>")
+} else {
+  cat(sprintf('<a href="%s" class="btn btn-primary" role="button" download>Download Raw Sequence Files</a>', url))
+}
 ```
 
 ## Download Sequencing Data Quality Control Summary
 
 FastQC provides quality metrics for individual sequencing samples, including read quality, GC content, and adapter contamination. The MultiQC report summarizes these results across all samples. The multiQC report is of raw sequence data. These data were quality filtered and trimmed prior to analysis. For guidance on interpreting the results, see [FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).
 
-```{r,results="asis"}
+```{r download multiqc, echo=FALSE, results="asis"}
 library(base64enc)
 
-# Read the file as binary and encode as base64
 output_file <- report_params$multiqc_html
-base64_content <- base64encode(output_file)
 
-# Create a downloadable link with embedded file
-cat(sprintf(
-  '<a download="novogene_brain_multiqc_report.html" href="data:text/html;base64,%s" class="btn btn-primary">Download MultiQC Report</a>',
-  base64_content
-))
+if (output_file == "") {
+  cat("<p><em>This file was not included in this report.</em></p>")
+} else {
+  base64_content <- base64encode(output_file)
+  cat(sprintf(
+    '<a download="novogene_brain_multiqc_report.html" href="data:text/html;base64,%s" class="btn btn-primary">Download MultiQC Report</a>',
+    base64_content
+  ))
+}
 ```
 
 ## Download Raw and Filtered Counts Data
