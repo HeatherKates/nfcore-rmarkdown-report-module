@@ -28,7 +28,8 @@ library(qs)
 library(kableExtra)
 library(yaml)
 source("HRK_funcs.R")
-library(downloadthis, lib.loc = "~/R/x86_64-pc-linux-gnu-library/4.2/")
+#library(downloadthis, lib.loc = "~/R/x86_64-pc-linux-gnu-library/4.2/")
+library(downloadthis)
 select <- dplyr::select
 ```
 
@@ -55,7 +56,7 @@ parse_params <- function(filepath) {
 report_params <- parse_params(params$params_file)
 ```
 
-```{r}
+```{analysis r}
 invisible(
   suppressMessages(
     suppressWarnings(
@@ -121,7 +122,7 @@ if (output_file == "") {
 } else {
   base64_content <- base64encode(output_file)
   cat(sprintf(
-    '<a download="novogene_brain_multiqc_report.html" href="data:text/html;base64,%s" class="btn btn-primary">Download MultiQC Report</a>',
+    '<a download="multiqc_report.html" href="data:text/html;base64,%s" class="btn btn-primary">Download MultiQC Report</a>',
     base64_content
   ))
 }
