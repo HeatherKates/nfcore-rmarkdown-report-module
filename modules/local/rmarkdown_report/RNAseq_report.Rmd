@@ -56,7 +56,7 @@ parse_params <- function(filepath) {
 report_params <- parse_params(params$params_file)
 ```
 
-```{analysis r}
+```{r analysis}
 invisible(
   suppressMessages(
     suppressWarnings(
