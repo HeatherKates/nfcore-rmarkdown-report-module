@@ -32,6 +32,7 @@ files.list <- list.files(path = report_params$rsem_dir, pattern = 'genes.results
 #Gets just the base sample name
 orig_names <- gsub(".genes.results","",basename(files.list))
 
+
 list_of_data <- lapply(files.list, function(file) {
   read.table(file, header = TRUE, sep = "\t", row.names = 1)
 })
@@ -41,8 +42,12 @@ names(list_of_data) <- orig_names
 DGE <- readDGE(files = files.list, columns = c(1, 5))
 
 # Rename samples
-orig_names <- str_sub(string = basename(colnames(DGE)), end = -7)
-orig_names <- str_sub(string = orig_names, start = 1, end = 18)
+# orig_names <- str_sub(string = basename(colnames(DGE)), end = -7)
+# orig_names <- str_sub(string = orig_names, start = 1, end = 18)
+# Added temporarily
+#orig_names <- str_replace(basename(colnames(DGE)), "\\.genes\\.results$", "")
+orig_names <- str_replace(basename(colnames(DGE)), "\\.genes$", "") #added to work with Kalyanee's quick fix. TEMPORARY
+
 rownames(DGE$samples) <- orig_names
 colnames(DGE$counts) <- orig_names
 DGE$samples$SampleName <- orig_names
@@ -113,7 +118,17 @@ dev.off()  # Close PNG device
 vfit <- lmFit(v, design.mat)
 
 # Extract unique contrast names
-contrast_strings <- unique(unlist(strsplit(DGE.NOIseqfilt$samples$Contrast, ";")))
+# contrast_strings <- unique(unlist(strsplit(DGE.NOIseqfilt$samples$Contrast, ";")))
+# 3. Extract contrasts list
+if (!is.null(report_params$contrasts) && file.exists(report_params$contrasts)) {
+  contrast_strings <- readLines(report_params$contrasts)
+  contrast_strings <- contrast_strings[!grepl("^\\s*#", contrast_strings)]
+  contrast_strings <- contrast_strings[contrast_strings != ""]
+  contrast_strings <- str_replace_all(contrast_strings, "_vs_", "-")
+} else {
+  contrast_strings <- unique(unlist(strsplit(sample.keys$Contrast, ";")))
+}
+
 
 # Generate contrast list
 contrasts_list <- setNames(
