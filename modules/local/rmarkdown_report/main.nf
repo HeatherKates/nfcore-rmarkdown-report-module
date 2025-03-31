@@ -14,13 +14,19 @@ process RENDER_RNASEQ_REPORT {
   output:
   path "*.html"
 
-  script:
+script:
   """
+  REPORT_TITLE=\$(grep "^--report_title" ${params_file} | cut -d' ' -f2- | tr -d '"')
+
   apptainer exec ${rmarkdown_container} Rscript -e "rmarkdown::render(
     'RNAseq_report.Rmd',
     output_file = '${sample_id}.Report.html',
-    params = list(params_file = '${params_file}')
+    params = list(
+      params_file = '${params_file}',
+      report_title = '\$REPORT_TITLE'
+    )
   )"
   """
+
 }
 
