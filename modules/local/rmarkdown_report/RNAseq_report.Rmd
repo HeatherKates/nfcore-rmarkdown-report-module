@@ -240,12 +240,13 @@ tagList(pca_results)
 
 Pairwise sample-to-sample correlation coefficients of log CPM normalized filtered counts were calculated using Spearman’s rank correlation in R v4.3.3 and visualized using pheatmap 1.0 (Kolde 2019).
 
-```{r cor,fig.width=12, fig.height=6}
+```{r corr,fig.width=12, fig.height=12}
 library(pheatmap)
 library(tibble)
 library(RColorBrewer)
+library(grid)
 
-# Step 1: Filter samples based on a dynamic grouping variable
+# Filter samples
 if (!is.null(report_params$filter_samples) || report_params$filter_samples != ""){
   selected_samples <- sample.keys %>%
     filter(!SampleName %in% report_params$filter_samples) %>%
@@ -254,49 +255,65 @@ if (!is.null(report_params$filter_samples) || report_params$filter_samples != ""
   selected_samples <- sample.keys %>% pull(SampleName)
 }
 
-# Step 2: Subset the lcpm matrix for the selected samples
+# Subset lcpm
 lcpm_filtered <- lcpm_matrix[, colnames(lcpm_matrix) %in% selected_samples]
 
-# Step 3: Calculate Spearman's correlation matrix
+# Spearman correlation
 cor_matrix <- cor(lcpm_filtered, method = "spearman")
 
-# Step 4: Annotate samples dynamically using `report_params$group_var`
+# Annotations
 annotation_col <- sample.keys %>%
   filter(SampleName %in% colnames(cor_matrix)) %>%
   select(SampleName, all_of(report_params$group_var)) %>%
   column_to_rownames("SampleName")
 
-# Step 5: Define dynamic colors for the annotation
-group_levels <- unique(annotation_col[[report_params$group_var]])  # Extract unique groups
-color_palette <- brewer.pal(min(length(group_levels), 8), "Set2")  # Choose up to 8 distinct colors
-ann_colors <- setNames(color_palette[seq_along(group_levels)], group_levels)  # Assign colors to levels
+# Dynamic color palette
+group_levels <- sort(unique(annotation_col[[report_params$group_var]]))
+n_groups <- length(group_levels)
 
-# Define color scale for heatmap
+if (n_groups <= 8) {
+  color_palette <- brewer.pal(n_groups, "Set2")
+} else {
+  color_palette <- colorRampPalette(brewer.pal(8, "Set2"))(n_groups)
+}
+ann_colors <- setNames(color_palette, group_levels)
+
+# Correlation color scale
 red_palette <- colorRampPalette(c("blue", "white", "red"))(100)
-
-# Capture min and max dynamically
 min_val <- min(cor_matrix)
 max_val <- max(cor_matrix)
+breaks_seq <- seq(min_val^2, max_val^2, length.out = 101)^(1/2)
 
-# Option 1: Quadratic scaling for better mid-range contrast
-breaks_seq <- seq(min_val^2, max_val^2, length.out = 101)^(1/2)  # Undo quadratic transformation
+# Automatically adjust plot size
+n_samples <- ncol(cor_matrix)
+display_numbers_flag <- n_samples <= 40
+fig_height <- max(6, n_samples * 0.25)
+fig_width <- max(6, n_samples * 0.25)
 
-# Generate the heatmap
-pheatmap(
+# Draw with layout control
+p <- pheatmap(
   cor_matrix,
   color = red_palette,
-  breaks = breaks_seq,  # Fixes the issue with incorrect within-group coloring
+  breaks = breaks_seq,
   annotation_col = annotation_col,
-  annotation_row = annotation_col,  
+  annotation_row = annotation_col,
   annotation_colors = setNames(list(ann_colors), report_params$group_var),
   clustering_method = "complete",
   main = paste("Spearman's Correlation Plot for Normalized Read Counts (lcpm) filtered by", report_params$group_var),
-  display_numbers = TRUE,
+  display_numbers = display_numbers_flag,
   number_format = "%.3f",
   fontsize = 10,
-  fontsize_number = 10,
-  number_color = "black"
+  fontsize_number = 6,
+  number_color = "black",
+  fontsize_row = 6,
+  fontsize_col = 6,
+  silent = TRUE  # return the object instead of drawing immediately
 )
+
+# Force proper rendering in Rmd
+grid.newpage()
+grid.draw(p$gtable)
+
 ```
 
 ### Heatmap of top 1000 CV genes
@@ -305,25 +322,24 @@ Scaled gene expression values of the top 1000 variable genes (sd/mean) were visu
 
 ```{r,fig.width=12,fig.height=6}
 # Step 3: Identify the top 1000 most variable genes by CV
-cv_values <- apply(lcpm_filtered, 1, function(x) sd(x) / mean(x))  # Compute CV
-top_1000_genes <- names(sort(cv_values, decreasing = TRUE))[1:1000]  # Select top 1000
-lcpm_top1000 <- lcpm_filtered[top_1000_genes, ]  # Subset the matrix
+# Step: Identify top 1000 most variable genes by CV
+cv_values <- apply(lcpm_filtered, 1, function(x) sd(x) / mean(x))
+top_1000_genes <- names(sort(cv_values, decreasing = TRUE))[1:1000]
+lcpm_top1000 <- lcpm_filtered[top_1000_genes, ]
 
-# Generate heatmap with gene clustering but NO row dendrogram
+# Step: Plot
 pheatmap(
   lcpm_top1000,
   color = colorRampPalette(c("blue", "white", "red"))(100),
-  annotation_col = annotation_col,  
+  annotation_col = annotation_col,
   annotation_colors = setNames(list(ann_colors), report_params$group_var),
-  clustering_method = "complete",  
+  clustering_method = "complete",
   scale = "row",
-  show_rownames = FALSE,  
+  show_rownames = FALSE,
   show_colnames = TRUE,
   main = "Top 1000 Most Variable Genes' (CV) Expression (Z-score) by Sample",
-  fontsize = 10,
-  legend_labels = c("title\n")
+  fontsize = 10
 )
-
 ```
 
 ## Mean-Variance Relationship: Before and After Variance Moderation
