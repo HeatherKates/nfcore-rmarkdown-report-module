@@ -23,8 +23,12 @@ source("HRK_funcs.R")
 select <- dplyr::select
 annotation_obj <- get(report_params$annotation_db, envir = asNamespace(report_params$annotation_db)) 
 
-# Ensure output directory exists
-if (!dir.exists(report_params$out_dir)) dir.create(report_params$out_dir)
+# Create temporary output directory
+tmp_out_dir <- tempfile("rmd_tmpdir_")
+dir.create(tmp_out_dir)
+
+# Save it in the list of parameters
+report_params <- list(out_dir = tmp_out_dir)
 
 #Step 1: Read in the tab-separated files
 files.list <- list.files(path = report_params$rsem_dir, pattern = 'genes.results$', full.names = T)
@@ -110,6 +114,7 @@ colnames(design.mat) <- make.names(levels(as.factor(DGE$samples[[report_params$g
 
 # Perform voom transformation
 # Create voom plot and save voom object
+
 png(filename = paste0(report_params$out_dir, "/voom_plot.png"))  # Open PNG device
 v <- voom(DGE.NOIseqfilt, design.mat, plot = TRUE)
 dev.off()  # Close PNG device
