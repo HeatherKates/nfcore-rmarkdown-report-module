@@ -536,20 +536,9 @@ GO_CC_results <- generate_enrichment_plot(
   ont_category = "CC",
   annotation_db = report_params$annotation_db
 )
-
-# Save results
-saveRDS(GO_BP_results, paste0(report_params$out_dir,"/GOBPResults.RDS"))
-saveRDS(GO_MF_results, paste0(report_params$out_dir,"/GOMFResults.RDS"))
-saveRDS(GO_CC_results, paste0(report_params$out_dir,"/GOCCResults.RDS"))
 ```
 
 ```{r GO enrich plots,fig.width=12, fig.height=10}
-# Check if any of the required objects are missing
-if (!exists("GO_BP_results") || !exists("GO_MP_results") || !exists("GO_CC_results")) {
-  GO_BP_results <- readRDS(paste0(report_params$out_dir,"/GOBPResults.RDS"))
-  GO_MF_results <- readRDS(paste0(report_params$out_dir,"/GOMFResults.RDS"))
-  GO_CC_results <- readRDS(paste0(report_params$out_dir,"/GOCCResults.RDS"))
-}
 # Display interactive plots
 download_button_png(GO_BP_results$static_plot, "GO_BP_enrich_plot",height = 12)
 GO_BP_results$interactive_plot
@@ -592,7 +581,6 @@ kegg_results <- generate_kegg_enrichment_plot(
   universe_entrez = universe_entrez,
   annotation_db = report_params$annotation_db 
 )
-saveRDS(kegg_results,paste0(report_params$out_dir,"KEGGResults.RDS"))
 ```
 
 ### DE genes
@@ -600,10 +588,6 @@ saveRDS(kegg_results,paste0(report_params$out_dir,"KEGGResults.RDS"))
 Gene lists are significantly DE genes per contrast
 
 ```{r kegg plot,fig.width=12, fig.height=10}
-if (!exists("kegg_results")) {
-  kegg_results <- readRDS(paste0(report_params$out_dir,"KEGGResults.RDS"))
-}
-
 download_button_png(kegg_results$static_plot, "kegg_enrichment_plot",height=12)
 kegg_results$interactive_plot
 
