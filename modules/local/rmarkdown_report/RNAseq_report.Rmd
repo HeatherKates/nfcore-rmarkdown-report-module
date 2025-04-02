@@ -602,6 +602,13 @@ button_type = "primary",
 )
 ```
 
+```{r cleanup_temp_dir, echo=FALSE, message=FALSE}
+if (!is.null(params$out_dir) && dir.exists(params$out_dir)) {
+  unlink(params$out_dir, recursive = TRUE)
+}
+```
+
+
 # References
 
 - Robinson MD, McCarthy DJ and Smyth GK (2010). edgeR: a Bioconductor package for differential expression analysis of digital gene expression data. Bioinformatics
