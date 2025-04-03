@@ -949,3 +949,23 @@ download_de_result_table <- function(efit, contrast_name = "Contrast") {
   return(efit_results_df)
 }
 
+plot_one_pca_by_contrast <- function(dge_list, contrast_name, group_var) {
+  # Extract groups from contrast name
+  groups <- unlist(strsplit(gsub("efit_|_results_df", "", contrast_name), "_vs_"))
+  
+  # Subset samples based on contrast groups
+  sample_subset <- dge_list$samples[dge_list$samples[[group_var]] %in% groups, ]
+  dge_filtered <- dge_list
+  dge_filtered$counts <- dge_list$counts[, colnames(dge_list$counts) %in% sample_subset$SampleName]
+  dge_filtered$samples <- sample_subset
+  
+  # Generate PCA plot
+  pca_plot <- plot_pca(dge_filtered,
+                       title = paste0("PCA for ", gsub("efit_", "", contrast_name)),
+                       grp_var = group_var,
+                       show_legend = TRUE)
+  
+  return(pca_plot)
+}
+
+
