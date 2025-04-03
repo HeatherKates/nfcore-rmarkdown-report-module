@@ -46,25 +46,42 @@ generate_enrichment_plot <- function(gene_lists, de_results_df, universe_entrez,
     p.adjust <= significance_threshold
   )
   
-  # Convert Entrez IDs to Gene Symbols and select top 20 by p-value **within the correct cluster & direction**
-  filtered_results$GeneSymbols <- sapply(filtered_results$geneID, function(gene_list) {
-    # Split "/" separated Entrez IDs into a vector
+  filtered_results$GeneSymbols <- sapply(seq_len(nrow(filtered_results)), function(i) {
+    gene_list <- filtered_results$geneID[i]
+    contrast_full <- as.character(filtered_results$Cluster[i]) 
+    
+    # Split into base contrast and direction
+    contrast_base <- sub("\\.(up|down)$", "", contrast_full)
+    direction <- sub("^.*\\.", "", contrast_full)
+    
     entrez_ids <- unlist(strsplit(gene_list, "/"))
     
-    # Convert to Gene Symbols
-    gene_symbols <- mapIds(annotation_obj, 
-                           keys = entrez_ids, 
-                           column = "SYMBOL", 
-                           keytype = "ENTREZID", 
-                           multiVals = "first")
+    # Match to relevant DE results
+    de_sub <- de_results_df %>%
+      filter(grepl(contrast_base, contrast),  # Match the base name
+             ENTREZID %in% entrez_ids,
+             case_when(
+               direction == "up" ~ logFC > 0,
+               direction == "down" ~ logFC < 0
+             ))
     
-    # Remove NAs and format output
-    gene_symbols <- na.omit(gene_symbols)
+    # Sort by p-value and get top 20 Entrez IDs
+    top_genes <- de_sub %>%
+      arrange(adj.P.value) %>%
+      slice_head(n = 20) %>%
+      pull(ENTREZID)
+    
+    gene_symbols <- mapIds(annotation_obj,
+                           keys = top_genes,
+                           column = "SYMBOL",
+                           keytype = "ENTREZID",
+                           multiVals = "first") %>%
+      na.omit()
     
     if (length(gene_symbols) > 0) {
-      paste(gene_symbols, collapse = "<br>")  # Return as formatted string
+      paste(gene_symbols, collapse = "<br>")
     } else {
-      NA_character_  # Return NA if empty
+      NA_character_
     }
   })
   
@@ -250,27 +267,45 @@ generate_kegg_enrichment_plot <- function(gene_lists, de_results_df, universe_en
   )
   
   # Convert Entrez IDs to Gene Symbols and select top 20 by p-value **within the correct cluster & direction**
-  # Convert Entrez IDs to Gene Symbols and select top 20 by p-value **within the correct cluster & direction**
-  filtered_results$GeneSymbols <- sapply(filtered_results$geneID, function(gene_list) {
-    # Split "/" separated Entrez IDs into a vector
+  filtered_results$GeneSymbols <- sapply(seq_len(nrow(filtered_results)), function(i) {
+    gene_list <- filtered_results$geneID[i]
+    contrast_full <- as.character(filtered_results$Cluster[i]) 
+    
+    # Split into base contrast and direction
+    contrast_base <- sub("\\.(up|down)$", "", contrast_full)
+    direction <- sub("^.*\\.", "", contrast_full)
+    
     entrez_ids <- unlist(strsplit(gene_list, "/"))
     
-    # Convert to Gene Symbols
-    gene_symbols <- mapIds(annotation_obj, 
-                           keys = entrez_ids, 
-                           column = "SYMBOL", 
-                           keytype = "ENTREZID", 
-                           multiVals = "first")
+    # Match to relevant DE results
+    de_sub <- de_results_df %>%
+      filter(grepl(contrast_base, contrast),  # Match the base name
+             ENTREZID %in% entrez_ids,
+             case_when(
+               direction == "up" ~ logFC > 0,
+               direction == "down" ~ logFC < 0
+             ))
     
-    # Remove NAs and format output
-    gene_symbols <- na.omit(gene_symbols)
+    # Sort by p-value and get top 20 Entrez IDs
+    top_genes <- de_sub %>%
+      arrange(adj.P.value) %>%
+      slice_head(n = 20) %>%
+      pull(ENTREZID)
+    
+    gene_symbols <- mapIds(annotation_obj,
+                           keys = top_genes,
+                           column = "SYMBOL",
+                           keytype = "ENTREZID",
+                           multiVals = "first") %>%
+      na.omit()
     
     if (length(gene_symbols) > 0) {
-      paste(gene_symbols, collapse = "<br>")  # Return as formatted string
+      paste(gene_symbols, collapse = "<br>")
     } else {
-      NA_character_  # Return NA if empty
+      NA_character_
     }
   })
+  
   
   
   # **Save full filtered results for downloading**
@@ -871,7 +906,7 @@ top_DE_entrezIDs <- function(df, direction = "up") {
 
 # Function to extract top DE genes and convert to Entrez IDs
 non_DE_entrezIDs <- function(df) {
-    filtered_genes <- df %>% filter(adj.P.value > 0.05|abs(logFC) < 0.58)
+  filtered_genes <- df %>% filter(adj.P.value > 0.05|abs(logFC) < 0.58)
   
   # Return empty vector if no significant genes
   if (nrow(filtered_genes) == 0) {
@@ -889,5 +924,28 @@ non_DE_entrezIDs <- function(df) {
   return(entrez_ids)
 }
 
-
+download_de_result_table <- function(efit, contrast_name = "Contrast") {
+  # Step 1: Extract relevant columns from the efit object
+  efit_results_df <- data.frame(
+    ensembleID = rownames(efit$coefficients),  # Extract rownames as ensemble IDs
+    logFC = efit$coefficients[, 1],           # Log fold change
+    AveExpr = efit$Amean,                      # Average expression
+    t = efit$t[, 1],                           # t-statistic
+    P.value = efit$p.value[, 1],               # Raw p-value
+    adj.P.value = p.adjust(efit$p.value[, 1], method = "BH"), # Adjusted p-value (BH)
+    B = efit$lods[, 1],                         # Log-odds of differential expression
+    contrast = contrast_name
+  )
+  
+  # Step 2: Merge with gene symbols from efit$genes
+  if (!is.null(efit$genes)) {
+    efit_results_df <- merge(efit_results_df, efit$genes, by.x = "ensembleID", by.y = "ENSEMBL", all.x = TRUE)
+  }
+  
+  # Step 3: Relocate SYMBOL and ensembleID for better display
+  efit_results_df <- efit_results_df %>%
+    relocate(SYMBOL) %>%
+    relocate(ensembleID, .after = contrast)
+  return(efit_results_df)
+}
 
