@@ -225,14 +225,27 @@ combined_plot <- subplot(pca_plots[[1]], pca_plots[[2]], pca_plots[[3]],
 
 ### PCA per-contrast
 
-```{r pca}
+```{r pca,eval=FALSE}
 # Apply PCA separately for each contrast
-pca_results <- lapply(names(efit_results_dfs), function(contrast_name) {
-  plot_pca_by_contrast(dge_list = list(dge_list_raw, dge_list_NOISeq, dge_list_edgeR), 
+pca_results <- lapply(names(efit_results_dfs)[1:2], function(contrast_name) {
+  plot_pca_by_contrast(dge_list = list(dge_list_NOISeq), 
                         contrast_name = gsub("_results_df","",contrast_name), 
                         group_var = report_params$group_var)
 })
 
+# Display PCA plots
+tagList(pca_results)
+```
+
+```{r contrast pcas, fig.width=8, fig.height=8, message=FALSE, warning=FALSE}
+# Generate list of PCA plots (ggplot objects)
+pca_results <- lapply(names(efit_results_dfs), function(contrast_name) {
+  plot_one_pca_by_contrast(
+    dge_list = dge_list_NOISeq,
+    contrast_name = gsub("_results_df", "", contrast_name),
+    group_var = report_params$group_var
+  )
+})
 # Display PCA plots
 tagList(pca_results)
 ```
