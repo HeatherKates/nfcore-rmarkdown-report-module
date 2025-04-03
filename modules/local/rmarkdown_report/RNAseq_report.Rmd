@@ -55,6 +55,9 @@ parse_params <- function(filepath) {
 
 # Read the params file name from the YAML params
 report_params <- parse_params(params$params_file)
+#testing
+#report_params <- list() #for testing, remove later
+#report_params <- parse_params("/blue/licht/runs/H2B-E77K-Project/GE7832/Downstream_Analysis/GE7832_params_H2B.txt")
 ```
 
 ```{r analysis}
@@ -402,7 +405,29 @@ tagList(
 - Summary per contrast showing the number of differentially expressed genes and key statistics.
 - **Tables can be filtered, sorted, and downloaded**  
 
-```{r}
+```{r download tables}
+# Convert efit_list to a named list of data frames with contrast column
+efit_df_list <- lapply(seq_along(efit_list), function(i) {
+  contrast_name <- gsub("^X| X", "", names(efit_list)[i])
+  df <- download_de_result_table(efit_list[[i]])
+  df$contrast <- contrast_name
+  return(df)
+})
+
+names(efit_df_list) <- gsub("^X| X", "", names(efit_list))
+
+# Download GO results as an Excel file
+efit_df_list %>% downloadthis::download_this(
+  output_name = paste0(report_params$Project_Title,"DE_results_all_contrasts"),
+  output_extension = ".xlsx",
+  button_label = "Download DE results for all contrasts",
+button_type = "primary",
+  has_icon = TRUE,
+  icon = "fa fa-save"
+)
+```
+
+```{r view tables}
 tagList(
   lapply(seq_along(efit_list), function(i) {
     contrast_name <- gsub("^X| X", "", names(efit_list)[i])
@@ -450,7 +475,7 @@ tagList(heatmap_list)
 
 Pathway enrichment analysis was performed to identify functional enrichment of gene lists and to compare these significant results across contrasts.
 
-If a contrast had no significant genes using the standard filtering (p adj < 0.05; abs(log2FC) > 0.58), relaxed filtering was applied to the DE results (adj.P < 0.1, No log2FC filtering) to create a gene list for the enrichment analyses. If no genes passed relaxed filtering criteria, the enrichment analysis was performed for that contrast-direction (see warning messages).
+If a contrast had fewer than five significant genes using the standard filtering (p adj < 0.05; abs(log2FC) > 0.58), relaxed filtering was applied to the DE results (adj.P < 0.1, No log2FC filtering) to create an input gene list for the enrichment analyses. If no genes passed standard or relaxed filtering criteria, the enrichment analysis was not performed for that contrast-direction (see warning messages).
 
 ```{r gene-list-and-messages, eval=TRUE}
 # Generate dynamic gene lists and collect enrichment messages
