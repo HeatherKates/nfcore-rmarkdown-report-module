@@ -18,6 +18,8 @@ script:
   """
   REPORT_TITLE=\$(grep "^--report_title" ${params_file} | cut -d' ' -f2- | tr -d '"')
 
+  echo "Rendering report for: \$REPORT_TITLE"
+
   apptainer exec ${rmarkdown_container} Rscript -e "rmarkdown::render(
     'RNAseq_report.Rmd',
     output_file = '${sample_id}.Report.html',
@@ -25,7 +27,7 @@ script:
       params_file = '${params_file}',
       report_title = '\$REPORT_TITLE'
     )
-  )"
+  )" > ${sample_id}.render.log 2>&1
   """
 
 }
