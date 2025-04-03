@@ -23,45 +23,39 @@ source("HRK_funcs.R")
 select <- dplyr::select
 annotation_obj <- get(report_params$annotation_db, envir = asNamespace(report_params$annotation_db)) 
 
-# Create temporary output directory
 tmp_out_dir <- tempfile("rmd_tmpdir_")
 dir.create(tmp_out_dir)
 
 # Save it in the list of parameters
-report_params <- list(out_dir = tmp_out_dir)
+report_params$out_dir <- tmp_out_dir
 
-#Step 1: Read in the tab-separated files
-files.list <- list.files(path = report_params$rsem_dir, pattern = 'genes.results$', full.names = T)
+# Step 1: List RSEM files
+files.list <- list.files(path = report_params$rsem_dir, pattern = 'genes.results$', full.names = TRUE)
 
-#Gets just the base sample name
-orig_names <- gsub(".genes.results","",basename(files.list))
+# Step 2: Extract sample names from filenames (remove suffix)
+file_sample_names <- gsub(".genes.results$", "", basename(files.list))
 
+# Step 3: Create data frame mapping sample names to files
+file_df <- data.frame(SampleName = file_sample_names, File = files.list, stringsAsFactors = FALSE)
 
-list_of_data <- lapply(files.list, function(file) {
-  read.table(file, header = TRUE, sep = "\t", row.names = 1)
-})
-
-names(list_of_data) <- orig_names
-
-DGE <- readDGE(files = files.list, columns = c(1, 5))
-
-# Rename samples
-# orig_names <- str_sub(string = basename(colnames(DGE)), end = -7)
-# orig_names <- str_sub(string = orig_names, start = 1, end = 18)
-# Added temporarily
-#orig_names <- str_replace(basename(colnames(DGE)), "\\.genes\\.results$", "")
-orig_names <- str_replace(basename(colnames(DGE)), "\\.genes$", "") #added to work with Kalyanee's quick fix. TEMPORARY
-
-rownames(DGE$samples) <- orig_names
-colnames(DGE$counts) <- orig_names
-DGE$samples$SampleName <- orig_names
-
-# Load sample keys
+# Step 4: Load sample keys
 sample.keys <- read_csv(report_params$sample_data)
 
-# Merge sample metadata
-DGE$samples <- merge(DGE$samples, sample.keys, by="SampleName")
-rownames(DGE$samples) <- orig_names
+# Step 5: Filter and re-order file_df to match sample.keys
+file_df <- file_df[file_df$SampleName %in% sample.keys$SampleName, ]
+file_df <- file_df[match(sample.keys$SampleName, file_df$SampleName), ]  # ensures correct order
+
+# Step 6: Read only matched files
+DGE <- readDGE(files = file_df$File, columns = c(1, 5))
+
+# Step 7: Rename samples
+colnames(DGE$counts) <- file_df$SampleName
+rownames(DGE$samples) <- file_df$SampleName
+DGE$samples$SampleName <- file_df$SampleName
+
+# Step 8: Merge metadata (safe way that preserves order)
+DGE$samples <- left_join(DGE$samples, sample.keys, by = "SampleName")
+rownames(DGE$samples) <- DGE$samples$SampleName
 
 # Annotate genes
 ensemblid <- rownames(DGE)
@@ -206,13 +200,21 @@ top_DE_entrezIDs <- function(df, direction = "up", min_genes = 5) {
     return(list(entrez_ids = character(0), message = msg))
   }
   
-  entrez_ids <- mapIds(
-    annotation_obj,
-    keys = filtered_genes$ensembleID,
-    column = "ENTREZID",
-    keytype = "ENSEMBL",
-    multiVals = "first"
-  )
+  # Try mapping to Entrez IDs
+  entrez_ids <- tryCatch({
+    mapIds(
+      annotation_obj,
+      keys = filtered_genes$ensembleID,
+      column = "ENTREZID",
+      keytype = "ENSEMBL",
+      multiVals = "first"
+    )
+  }, error = function(e) {
+    msg <<- glue::glue(
+      "❌ No DE genes found mapped to Entrez IDs for direction '{direction}': {conditionMessage(e)}"
+    )
+    return(character(0))
+  })
   
   return(list(entrez_ids = na.omit(entrez_ids), message = msg))
 }
