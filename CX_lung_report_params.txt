@@ -19,3 +19,4 @@
 --Report_Reviewed_By "[Dr. Jason Brant](mailto:jobrant@ufl.edu), Assistant Professor"
 --raw_seq_URL "https://www.dropbox.com/scl/fo/fxr903mihyazuhcy1hcjk/AIEZQ5ZWaNB2DfDLGKPKwDM?rlkey=7riefwiw02283y6ji5kei57p4&st=sasavl8n&dl=1"
 --multiqc_html "/blue/cancercenter-dept/hkates/Projects_2025_Feb-May/Xing/H202SC23123556/Differential_Analysis/H202SC23123556_multiqc_report.html"
+--batch_var "Batch"

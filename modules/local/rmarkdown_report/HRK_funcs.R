@@ -742,7 +742,8 @@ library(car)
 
 plot_pca <- function(dge, title, grp_var=report_params$group_var, show_legend = TRUE, combine_plots = FALSE) {
   # Extract log-transformed CPM values
-  PCA_DATA <- t(cpm(dge, log = TRUE))  # Transpose to have samples as rows
+  PCA_DATA <- t(get_log_matrix(dge))
+  
   numsonly <- as.data.frame(PCA_DATA)
   numsonly <- as.data.frame(lapply(numsonly, as.numeric))  # Ensure numeric values
   
@@ -804,30 +805,7 @@ plot_pca <- function(dge, title, grp_var=report_params$group_var, show_legend = 
     yaxis = list(title = paste0("PC2 (", percentVar[2], "%)"))
   )
   
-  # **If not combining, return single plot**
-  if (!combine_plots) return(fig)
-  
-  # **Generate PCA plots for each filtering step**
-  dge_list <- dge_list
-  pca_plots <- mapply(plot_pca, dge_list, grp_var = grp_var, show_legend = c(TRUE, FALSE, FALSE), title = "", SIMPLIFY = FALSE)
-  
-  # **Combine the three plots in a single row**
-  combined_plot <- subplot(pca_plots[[1]], pca_plots[[2]], pca_plots[[3]], 
-                           nrows = 1, shareY = FALSE)
-  
-  # **Add annotations**
-  annotations = list( 
-    list(x = 0.15, y = 1.0, text = "PCA Before Filtering", xref = "paper", yref = "paper", 
-         xanchor = "center", yanchor = "bottom", showarrow = FALSE),  
-    list(x = 0.5, y = 1, text = "PCA After Filtering: NOISeq", xref = "paper", yref = "paper", 
-         xanchor = "center", yanchor = "bottom", showarrow = FALSE),
-    list(x = 0.85, y = 1, text = "PCA After Filtering: edgeR", xref = "paper", yref = "paper", 
-         xanchor = "center", yanchor = "bottom", showarrow = FALSE)
-  )
-  
-  # **Apply annotations and return combined plot**
-  combined_plot <- combined_plot %>% layout(annotations = annotations)
-  return(combined_plot)
+  return(fig)
 }
 # Define function to subset samples by contrast and run PCA
 plot_pca_by_contrast <- function(dge_list, contrast_name, group_var) {
@@ -964,8 +942,14 @@ plot_one_pca_by_contrast <- function(dge_list, contrast_name, group_var) {
   # Subset samples based on contrast groups
   sample_subset <- dge_list$samples[dge_list$samples[[group_var]] %in% groups, ]
   dge_filtered <- dge_list
-  dge_filtered$counts <- dge_list$counts[, colnames(dge_list$counts) %in% sample_subset$SampleName]
+  selected_samples <- sample_subset$SampleName
+  
+  dge_filtered$counts <- dge_list$counts[, colnames(dge_list$counts) %in% selected_samples]
   dge_filtered$samples <- sample_subset
+  
+  if (!is.null(dge_list$E_corrected)) {
+    dge_filtered$E_corrected <- dge_list$E_corrected[, selected_samples]
+  }
   
   # Generate PCA plot
   pca_plot <- plot_pca(dge_filtered,
@@ -976,4 +960,40 @@ plot_one_pca_by_contrast <- function(dge_list, contrast_name, group_var) {
   return(pca_plot)
 }
 
+
+plot_pca_combined <- function(dge_list, grp_var = report_params$group_var, annotation_labels = NULL) {
+  show_legend_flags <- c(TRUE, rep(FALSE, length(dge_list) - 1))
+  pca_plots <- mapply(plot_pca, dge_list, grp_var = grp_var, show_legend = show_legend_flags, title = "", SIMPLIFY = FALSE)
+  
+  combined_plot <- subplot(pca_plots, nrows = 1, shareY = FALSE)
+  
+  if (!is.null(annotation_labels)) {
+    annotations <- lapply(seq_along(annotation_labels), function(i) {
+      list(
+        x = (i - 0.5) / length(annotation_labels),
+        y = 1,
+        text = annotation_labels[i],
+        xref = "paper",
+        yref = "paper",
+        xanchor = "center",
+        yanchor = "bottom",
+        showarrow = FALSE
+      )
+    })
+    combined_plot <- combined_plot %>% layout(annotations = annotations)
+  }
+  
+  return(combined_plot)
+}
+
+
+get_log_matrix <- function(dge) {
+  if (!is.null(dge$E_corrected)) {
+    return(dge$E_corrected)
+  } else if (!is.null(dge$counts)) {
+    return(cpm(dge, log = TRUE))
+  } else {
+    stop("Input DGE object must contain either 'counts' or 'E_corrected'.")
+  }
+}
 

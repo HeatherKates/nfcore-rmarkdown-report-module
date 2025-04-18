@@ -21,7 +21,22 @@ library(AnnotationDbi)
 library(org.Mm.eg.db)
 source("HRK_funcs.R")
 select <- dplyr::select
+if (!requireNamespace("statmod", quietly = TRUE)) {
+  install.packages("statmod", repos = "https://cloud.r-project.org")
+}
+
+
+#############################################
+#########  SETUP DGE OBJECT   ###############
+#############################################
+
 annotation_obj <- get(report_params$annotation_db, envir = asNamespace(report_params$annotation_db)) 
+
+# Treat empty or missing batch_var as NULL
+if (!("batch_var" %in% names(report_params)) || is.null(report_params$batch_var) ||
+    report_params$batch_var == "" || report_params$batch_var == "None") {
+  report_params$batch_var <- NULL
+}
 
 tmp_out_dir <- tempfile("rmd_tmpdir_")
 dir.create(tmp_out_dir)
@@ -40,6 +55,11 @@ file_df <- data.frame(SampleName = file_sample_names, File = files.list, strings
 
 # Step 4: Load sample keys
 sample.keys <- read_csv(report_params$sample_data)
+# Temporary
+#if (TEST == TRUE){
+  set.seed(42)
+  sample.keys$Batch <- sample(rep(c("One", "Two"), each = 8))
+#}
 
 # Step 5: Filter and re-order file_df to match sample.keys
 file_df <- file_df[file_df$SampleName %in% sample.keys$SampleName, ]
@@ -75,6 +95,10 @@ matched_genes <- genes[match(ensemblid, genes$ENSEMBL), ]
 # Assign the matched gene annotations as a new column in DGE
 DGE$genes <- matched_genes
 
+#############################################
+#########  FILTER GENES  ####################
+#############################################
+
 # Define treatments
 treatment.all <- as.factor(DGE$samples[[report_params$group_var]])
 
@@ -101,6 +125,10 @@ DGE.NOIseqfilt$counts <- filtered.data(
 DGE.NOIseqfilt$samples$lib.size <- apply(DGE.NOIseqfilt$counts, 2, sum)
 DGE.NOIseqfilt <- calcNormFactors(DGE.NOIseqfilt, method = 'TMM')
 
+#############################################
+########## BEGIN DE TEST ####################
+#############################################
+
 # Create design matriDGE
 design.mat <- model.matrix(~ 0 + DGE$samples[[report_params$group_var]])
 rownames(design.mat) <- DGE$samples$SampleName
@@ -112,9 +140,40 @@ colnames(design.mat) <- make.names(levels(as.factor(DGE$samples[[report_params$g
 png(filename = paste0(report_params$out_dir, "/voom_plot.png"))  # Open PNG device
 v <- voom(DGE.NOIseqfilt, design.mat, plot = TRUE)
 dev.off()  # Close PNG device
+# ----- Optional batch correction -----
+if (!is.null(report_params$batch_var) && report_params$batch_var %in% colnames(sample.keys)) {
+  message("Batch correction: Running duplicateCorrelation and removeBatchEffect...")
+  
+  batch <- sample.keys[[report_params$batch_var]]
+  design <- model.matrix(~ 0 + sample.keys[[report_params$group_var]])
+  
+  corfit <- duplicateCorrelation(v, design, block = batch)
+  
+  corrected_matrix <- removeBatchEffect(
+    v$E,
+    batch = batch,
+    design = design,
+    correlation = corfit$consensus.correlation,
+    block = batch
+  )
+  
+  # Add corrected matrix to object
+  v$E_corrected <- corrected_matrix
+  DGE.NOIseqfilt$E_corrected <- corrected_matrix
+  message("Batch correction complete.")
+} else {
+  message("No batch correction applied.")
+  v$E_corrected <- v$E
+  DGE.NOIseqfilt$E_corrected <- v$E
+  
+}
 
 # Fit linear model
-vfit <- lmFit(v, design.mat)
+if (!is.null(report_params$batch_var) && report_params$batch_var %in% colnames(sample.keys)) {
+  vfit <- lmFit(v, design.mat, block = batch, correlation = corfit$consensus.correlation)
+} else {
+  vfit <- lmFit(v, design.mat)
+}
 
 # Extract unique contrast names
 # contrast_strings <- unique(unlist(strsplit(DGE.NOIseqfilt$samples$Contrast, ";")))
