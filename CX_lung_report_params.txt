@@ -2,7 +2,6 @@
 --rsem_dir "/blue/cancercenter-dept/hkates/Projects_2025_Feb-May/Xing/H202SC23123556/nfcore_rnaseq/star_rsem"
 --group_var "Condition"
 --filter_samples 
---out_dir "/blue/cancercenter-dept/hkates/Projects_2025_Feb-May/Xing/H202SC23123556/Differential_Analysis/Output"
 --sample_data "/blue/cancercenter-dept/hkates/Projects_2025_Feb-May/Xing/H202SC23123556/Differential_Analysis/SampleData.csv"
 --contrasts "/blue/cancercenter-dept/hkates/Projects_2025_Feb-May/Xing/H202SC23123556/Differential_Analysis/contrasts.txt"
 --organism "mmu"
