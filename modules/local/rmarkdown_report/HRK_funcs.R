@@ -794,7 +794,15 @@ plot_pca <- function(dge, title, grp_var=report_params$group_var, show_legend = 
   invisible(lapply(unique(group_labels), plot_points_function))
   
   # Add title
-  fig <- fig %>% layout(title = title, xaxis = list(title = "PC1"), yaxis = list(title = "PC2"))
+  # Get % variance explained
+  percentVar <- round(100 * pca_res$sdev^2 / sum(pca_res$sdev^2), 1)
+  
+  # Add axis titles with % variance
+  fig <- fig %>% layout(
+    title = title,
+    xaxis = list(title = paste0("PC1 (", percentVar[1], "%)")),
+    yaxis = list(title = paste0("PC2 (", percentVar[2], "%)"))
+  )
   
   # **If not combining, return single plot**
   if (!combine_plots) return(fig)
