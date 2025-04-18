@@ -29,7 +29,6 @@ library(qs)
 library(kableExtra)
 library(yaml)
 source("HRK_funcs.R")
-#library(downloadthis, lib.loc = "~/R/x86_64-pc-linux-gnu-library/4.2/")
 library(downloadthis)
 select <- dplyr::select
 ```
