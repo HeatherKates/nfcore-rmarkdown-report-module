@@ -55,11 +55,6 @@ file_df <- data.frame(SampleName = file_sample_names, File = files.list, strings
 
 # Step 4: Load sample keys
 sample.keys <- read_csv(report_params$sample_data)
-# Temporary
-#if (TEST == TRUE){
-  set.seed(42)
-  sample.keys$Batch <- sample(rep(c("One", "Two"), each = 8))
-#}
 
 # Step 5: Filter and re-order file_df to match sample.keys
 file_df <- file_df[file_df$SampleName %in% sample.keys$SampleName, ]
