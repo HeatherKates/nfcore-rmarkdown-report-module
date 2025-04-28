@@ -56,7 +56,7 @@ if (!exists("TEST") || is.null(TEST)) {
   report_params <- parse_params(params$params_file)
 } else {
   # Testing mode
-  report_params <- parse_params("/blue/cancercenter-dept/PIPELINES/rmarkdown_report_module/CX_lung_report_params.txt")
+  report_params <- parse_params("/blue/cancercenter-dept/PIPELINES/REPORTING/rmarkdown_report_module/Params_Zhang_GE7607_MSH2.txt")
 }
 
 ```
@@ -118,18 +118,12 @@ if (url == "") {
 FastQC provides quality metrics for individual sequencing samples, including read quality, GC content, and adapter contamination. The MultiQC report summarizes these results across all samples. The multiQC report is of raw sequence data. These data were quality filtered and trimmed prior to analysis. For guidance on interpreting the results, see [FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).
 
 ```{r download multiqc, echo=FALSE, results="asis"}
-library(base64enc)
+url <- report_params$multiqc_url
 
-output_file <- report_params$multiqc_html
-
-if (output_file == "") {
+if (url == "") {
   cat("<p><em>This file was not included in this report.</em></p>")
 } else {
-  base64_content <- base64encode(output_file)
-  cat(sprintf(
-    '<a download="multiqc_report.html" href="data:text/html;base64,%s" class="btn btn-primary">Download MultiQC Report</a>',
-    base64_content
-  ))
+  cat(sprintf('<a href="%s" class="btn btn-primary" role="button" download>Download MultiQC Report</a>', url))
 }
 ```
 
