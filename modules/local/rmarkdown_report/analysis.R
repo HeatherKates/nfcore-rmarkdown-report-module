@@ -57,6 +57,7 @@ file_df <- data.frame(SampleName = file_sample_names, File = files.list, strings
 sample.keys <- read_csv(report_params$sample_data)
 
 # Step 5: Filter and re-order file_df to match sample.keys
+file_df$SampleName <- gsub("_S\\d+_L\\d+_quant$", "", file_df$SampleName)
 file_df <- file_df[file_df$SampleName %in% sample.keys$SampleName, ]
 file_df <- file_df[match(sample.keys$SampleName, file_df$SampleName), ]  # ensures correct order
 
