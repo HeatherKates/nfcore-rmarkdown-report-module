@@ -56,7 +56,7 @@ if (!exists("TEST") || is.null(TEST)) {
   report_params <- parse_params(params$params_file)
 } else {
   # Testing mode
-  report_params <- parse_params("/blue/cancercenter-dept/PIPELINES/REPORTING/rmarkdown_report_module/Params_Zhang_GE7607_MLH1.txt")
+  report_params <- parse_params("/blue/cancercenter-dept/PROJECTS/CHENGGUO_XING/MOUSE_LIVER_4WEEK_TOBACCO_KAVA/Downstream_Analysis/nfcore-rmarkdown-report-module/CX_liver_report_params.txt")
 }
 
 ```
