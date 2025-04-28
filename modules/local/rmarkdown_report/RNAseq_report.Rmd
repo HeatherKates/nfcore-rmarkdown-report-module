@@ -627,22 +627,29 @@ GO_MF_results$interactive_plot
 download_button_png(GO_CC_results$static_plot, "GO_CC_enrich_plot",height=12)
 GO_CC_results$interactive_plot
 
-# Combine GO results into a single list of data frames
+# Combine GO results into a single list of data frames (some might be NULL)
 GO_results_list <- list(
   "BP_Results" = GO_BP_results$go_results,
   "MF_Results" = GO_MF_results$go_results,
   "CC_Results" = GO_CC_results$go_results
 )
 
-# Download GO results as an Excel file
-GO_results_list %>% downloadthis::download_this(
-  output_name = "GO_results",
-  output_extension = ".xlsx",
-  button_label = "Download GO enrichment results for all GO categories and all contrasts",
-button_type = "primary",
-  has_icon = TRUE,
-  icon = "fa fa-save"
-)
+# Remove NULL elements
+GO_results_list <- GO_results_list[!sapply(GO_results_list, is.null)]
+
+# Download GO results as an Excel file if any exist
+if (length(GO_results_list) > 0) {
+  GO_results_list %>% downloadthis::download_this(
+    output_name = "GO_results",
+    output_extension = ".xlsx",
+    button_label = "Download GO enrichment results for all GO categories and all contrasts",
+    button_type = "primary",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+} else {
+  cat("<b>No GO enrichment results available to download.</b>")
+}
 ```
 
 ## KEGG Pathway Enrichment Analysis
