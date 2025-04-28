@@ -6,9 +6,9 @@ library(plotly)
 library(heatmaply)
 library(org.Mm.eg.db)
 
-generate_enrichment_plot <- function(gene_lists, de_results_df, universe_entrez, ont_category, significance_threshold = 0.05, top_n = 10,annotation_db) {
+generate_enrichment_plot <- function(gene_lists, de_results_df, universe_entrez, ont_category, significance_threshold = 0.05, top_n = 10, annotation_db) {
   annotation_obj <- get(annotation_db, envir = asNamespace(annotation_db)) 
-  names(gene_lists) <- gsub("efit_|_results_df","",names(gene_lists))
+  names(gene_lists) <- gsub("efit_|_results_df", "", names(gene_lists))
   # Ensure gene lists are named and define contrast order
   if (is.null(names(gene_lists))) stop("Each gene list must be named!")
   contrast_order <- names(gene_lists)
@@ -34,6 +34,24 @@ generate_enrichment_plot <- function(gene_lists, de_results_df, universe_entrez,
     pvalueCutoff = 0.05
   )
   
+  # Handle no results case
+  if (is.null(formula_res) || nrow(formula_res@compareClusterResult) == 0) {
+    formula_res <- new("compareClusterResult",
+                       compareClusterResult = data.frame(
+                         Cluster = factor(),
+                         ID = character(),
+                         Description = character(),
+                         GeneRatio = character(),
+                         BgRatio = character(),
+                         pvalue = numeric(),
+                         p.adjust = numeric(),
+                         qvalue = numeric(),
+                         geneID = character(),
+                         Count = integer(),
+                         stringsAsFactors = FALSE
+                       ))
+  }
+  
   # Ensure clusters are ordered correctly
   formula_res@compareClusterResult$Cluster <- factor(
     formula_res@compareClusterResult$Cluster,
@@ -45,6 +63,23 @@ generate_enrichment_plot <- function(gene_lists, de_results_df, universe_entrez,
     formula_res@compareClusterResult,
     p.adjust <= significance_threshold
   )
+  
+  # Handle the special case: no enrichment found
+  if (nrow(filtered_results) == 0) {
+    message_plot <- ggplot() +
+      annotate("text", x = 1, y = 1, label = paste0("No significant GO enrichment found\n(", ont_category, ")"), size = 6, hjust = 0.5) +
+      theme_void() +
+      ggtitle(paste("GO Term Enrichment (", ont_category, ")", sep = ""))
+    
+    interactive_plot <- ggplotly(message_plot)
+    static_plot <- message_plot
+    
+    return(list(
+      interactive_plot = interactive_plot,
+      static_plot = static_plot,
+      go_results = NULL
+    ))
+  }
   
   filtered_results$GeneSymbols <- sapply(seq_len(nrow(filtered_results)), function(i) {
     gene_list <- filtered_results$geneID[i]
@@ -85,7 +120,6 @@ generate_enrichment_plot <- function(gene_lists, de_results_df, universe_entrez,
     }
   })
   
-  
   # **Save full filtered results for downloading**
   download_go_results <- filtered_results %>%
     select(Cluster, Description, p.adjust, GeneSymbols, everything())  # Reorder columns
@@ -108,7 +142,6 @@ generate_enrichment_plot <- function(gene_lists, de_results_df, universe_entrez,
     mutate(GeneRatio = sapply(strsplit(as.character(GeneRatio), "/"), function(x) as.numeric(x[1]) / as.numeric(x[2])))
   
   # **Restore GO Term Ordering Using Hierarchical Clustering**
-  
   reorder_GO_terms <- function(df) {
     term_matrix <- table(df$Description, df$Cluster)  
     
@@ -208,6 +241,7 @@ generate_enrichment_plot <- function(gene_lists, de_results_df, universe_entrez,
     go_results = download_go_results
   ))
 }
+
 # Run the function
 #GO_BP_results <- generate_enrichment_plot(
 #  gene_lists = gene_lists, 
